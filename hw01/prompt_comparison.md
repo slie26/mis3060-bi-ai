@@ -1,0 +1,7 @@
+## Strategy 1: Zero-shot
+
+**Prompt:** What are the most important metrics for measuring credit risk in a consumer loan portfolio?
+
+**First 150 words of response:** The metrics that matter most for consumer loan credit risk generally fall into a few categories, and I'll flag which ones you can actually calculate from the loan-level data sitting in your 02_Data/Raw folder (credit score, DTI, loan status, income, term, rate, purpose, state — that's a solid base). Borrower-level risk indicators come first, since they predict risk before a loan ever goes bad. Credit score (FICO or similar) is the classic starting point — it's directly in your dataset and lets you segment the portfolio into risk tiers. Debt-to-income ratio is the second pillar; DTI above roughly 40-43% is where default risk climbs sharply, and you have this field too. Loan-to-income or payment-to-income ratio (monthly payment as a share of monthly income) is worth deriving from loan_amount, interest_rate, term, and annual_income — it's often a better single predictor than DTI alone because it captures the specific loan's burden rather
+
+**Evaluation:** This answer was detailed and it did use Wildcat's actual data columns (credit score, DTI, loan amount, etc.), so it didn't feel generic. But it was hard to follow. It just listed a bunch of categories one after another without organizing them. Also, I asked what metrics matter "most," but it never actually picked a top one. It just gave a long list and treated everything as equally important.
