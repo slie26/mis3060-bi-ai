@@ -38,4 +38,6 @@ What it measures: Percentage of the
 
 **Evaluation:** This one matched the format I asked for really well. Each metric had a clear "what it measures" and "why it matters," which made it easy to read. But it was really long (10 metrics) and it didn't use any of Wildcat's actual data like the other two answers did, it just gave generic definitions. It also used a lot of technical terms without explaining them, so it wouldn't work for a non-technical audience. And just like the zero-shot answer, it never ranked anything, it just listed everything as equally important.
 
----
+## Conclusion
+
+Strategy 3 (few-shot) was my favorite out of the three. Giving it a format to follow made the answer so much easier to read compared to the zero-shot one, which just felt like a wall of text with no real structure. Strategy 2 was good too, it was organized and used simple language, but I still liked how clean Strategy 3 looked. Zero-shot was the hardest to get through since nothing was ranked or organized. At the end of the day, telling Claude exactly how I wanted the answer formatted made the biggest difference in how useful it actually was.
