@@ -13,3 +13,29 @@
 **First 150 words of response:** For a portfolio committee with limited technical background, you want a small set of metrics that each answer a plain-English question, rather than a long list of ratios. I pulled up the loan-level data in your Data/Raw folder (2,340 loans) to ground this in your actual portfolio, and a handful of metrics stand out as the core story. The first tier is delinquency and default rate — the simplest and most important numbers, because they answer "how many borrowers are failing to pay us back." In your data, 248 of 2,340 loans (10.6%) are currently delinquent and 106 (4.5%) have defaulted, so roughly 15% of the book is either behind or already lost. Executives will immediately want to know how that compares to a benchmark or to last quarter, so pairing the current snapshot with a trend line matters more than the single number. The second tier is loss severity
 
 **Evaluation:** This answer was way more organized than the zero-shot one. It ranked the metrics (first, second, third, fourth) instead of just listing them all as equal, and it told me which ones actually matter most. It also matched the audience I asked for by using plain language instead of jargon. The only weird part was at the end it randomly offered to build slides or pull more data, which I didn't ask for.
+
+## Strategy 3: Few-shot
+
+**Prompt:** Here's an example of the format I want your answer in:
+
+Metric: Customer Churn Rate
+What it measures: Percentage of customers who stop using a service in a given period
+Why it matters: High churn signals problems with retention or satisfaction
+
+Now, using this same format, answer: What are the most important metrics for measuring credit risk in a consumer loan portfolio?
+
+**First 150 words of response:** Metric: Default Rate
+What it measures: Percentage of loans in the portfolio where the borrower has failed to make payments per the loan terms (typically 90+ days past due or charged off)
+Why it matters: Directly reflects credit losses and portfolio quality; rising default rates signal deteriorating underwriting standards or borrower financial stress
+Metric: Delinquency Rate (30/60/90-day buckets)
+What it measures: Percentage of loans past due by specified time thresholds, tracked in stages before default
+Why it matters: Serves as an early warning system, allowing risk teams to spot deteriorating credit quality before loans reach default
+Metric: Net Charge-Off Rate
+What it measures: Value of loans written off as uncollectible, minus recoveries, as a percentage of total loan balances
+Why it matters: Captures actual realized losses after collection efforts, giving a clearer picture of financial impact than delinquency alone
+Metric: Loss Given Default (LGD)
+What it measures: Percentage of the
+
+**Evaluation:** This one matched the format I asked for really well. Each metric had a clear "what it measures" and "why it matters," which made it easy to read. But it was really long (10 metrics) and it didn't use any of Wildcat's actual data like the other two answers did, it just gave generic definitions. It also used a lot of technical terms without explaining them, so it wouldn't work for a non-technical audience. And just like the zero-shot answer, it never ranked anything, it just listed everything as equally important.
+
+---
