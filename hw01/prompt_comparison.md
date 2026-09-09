@@ -41,3 +41,13 @@ What it measures: Percentage of the
 ## Conclusion
 
 Strategy 3 (few-shot) was my favorite out of the three. Giving it a format to follow made the answer so much easier to read compared to the zero-shot one, which just felt like a wall of text with no real structure. Strategy 2 was good too, it was organized and used simple language, but I still liked how clean Strategy 3 looked. Zero-shot was the hardest to get through since nothing was ranked or organized. At the end of the day, telling Claude exactly how I wanted the answer formatted made the biggest difference in how useful it actually was.
+
+## Fact-Check
+
+**Claim checked:** In Strategy 2's response, Claude said 106 loans (4.5%) have defaulted out of 2,340 total loans.
+
+**How I verified it:** I opened the actual data file (`wildcat_loans_clean (1).csv`) myself in Excel, filtered the loan_status column to show only "Default," and counted the results.
+
+**Result:** The count matched exactly, 106 rows out of 2,340 total have a status of "Default," confirming the original claim was accurate. 
+
+---
