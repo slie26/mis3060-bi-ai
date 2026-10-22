@@ -117,7 +117,7 @@ Decision options: convert / standardize / fill / flag / quarantine / leave as is
 - **Evidence:** dim_client has 2,500 rows (sheet: 2,525); fact_transactions has 298,572 rows (sheet: 298,772); extra flag columns is_post_departure_txn and is_return_suspect. The instructor confirmed these are the files to use.
 - **Dimension violated:** none — documentation difference
 - **Decision:** leave as is; document
-- **Justification:** the provided extract was already partly cleaned (about 25 duplicate clients and 200 transactions removed upstream, 2 flags added). The removed rows aren't available, so they can't be quarantined or reconciled.
+- **Justification:** the provided extract was already partly cleaned (25 clients and 200 transactions fewer than the sheet, 2 flags added; why the rows were removed isn't documented). The removed rows aren't available, so they can't be quarantined or reconciled.
 - **Risk:** row counts in my reports won't match the assignment sheet. Explained in README.md and the cleaning report.
 
 ### Issue 15 — dim_date ignores market holidays
