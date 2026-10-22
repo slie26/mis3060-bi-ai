@@ -1,0 +1,27 @@
+relationship_id,stage,relationship,fact_table,fact_key,dim_table,dim_key,total_rows,null_key_rows,null_key_rate_pct,non_null_rows,matched_rows,match_rate_pct,orphan_rows,distinct_orphan_keys,sample_orphan_keys,dim_duplicate_keys
+1,raw,dim_client.advisor_id -> dim_advisor.advisor_id,dim_client,advisor_id,dim_advisor,advisor_id,2500,0,0.0,2500,2500,100.0,0,0,,0
+2,raw,fact_transactions.advisor_id -> dim_advisor.advisor_id,fact_transactions,advisor_id,dim_advisor,advisor_id,298572,0,0.0,298572,298572,100.0,0,0,,0
+3,raw,fact_fees.advisor_id -> dim_advisor.advisor_id,fact_fees,advisor_id,dim_advisor,advisor_id,122197,0,0.0,122197,122197,100.0,0,0,,0
+4,raw,fact_portfolio_snapshot.advisor_id -> dim_advisor.advisor_id,fact_portfolio_snapshot,advisor_id,dim_advisor,advisor_id,129547,0,0.0,129547,129547,100.0,0,0,,0
+5,raw,fact_transactions.client_id -> dim_client.client_id,fact_transactions,client_id,dim_client,client_id,298572,0,0.0,298572,298572,100.0,0,0,,0
+6,raw,fact_fees.client_id -> dim_client.client_id,fact_fees,client_id,dim_client,client_id,122197,0,0.0,122197,122197,100.0,0,0,,0
+7,raw,fact_portfolio_snapshot.client_id -> dim_client.client_id,fact_portfolio_snapshot,client_id,dim_client,client_id,129547,0,0.0,129547,129547,100.0,0,0,,0
+8,raw,fact_transactions.security_id -> dim_security.security_id,fact_transactions,security_id,dim_security,security_id,298572,101528,34.0045,197044,197044,100.0,0,0,,0
+9,raw,dim_security.benchmark_id -> dim_benchmark.benchmark_id,dim_security,benchmark_id,dim_benchmark,benchmark_id,500,0,0.0,500,500,100.0,0,0,,0
+10,raw,fact_portfolio_snapshot.benchmark_id -> dim_benchmark.benchmark_id,fact_portfolio_snapshot,benchmark_id,dim_benchmark,benchmark_id,129547,0,0.0,129547,129547,100.0,0,0,,0
+11,raw,fact_transactions.txn_date -> dim_date.date,fact_transactions,txn_date,dim_date,date,298572,0,0.0,298572,298572,100.0,0,0,,0
+12,raw,fact_fees.fee_date -> dim_date.date,fact_fees,fee_date,dim_date,date,122197,0,0.0,122197,122197,100.0,0,0,,0
+13,raw,fact_portfolio_snapshot.snapshot_date -> dim_date.date,fact_portfolio_snapshot,snapshot_date,dim_date,date,129547,0,0.0,129547,129547,100.0,0,0,,0
+1,clean,dim_client.advisor_id -> dim_advisor.advisor_id,dim_client,advisor_id,dim_advisor,advisor_id,2500,0,0.0,2500,2500,100.0,0,0,,0
+2,clean,fact_transactions.advisor_id -> dim_advisor.advisor_id,fact_transactions,advisor_id,dim_advisor,advisor_id,298572,0,0.0,298572,298572,100.0,0,0,,0
+3,clean,fact_fees.advisor_id -> dim_advisor.advisor_id,fact_fees,advisor_id,dim_advisor,advisor_id,122197,0,0.0,122197,122197,100.0,0,0,,0
+4,clean,fact_portfolio_snapshot.advisor_id -> dim_advisor.advisor_id,fact_portfolio_snapshot,advisor_id,dim_advisor,advisor_id,129547,0,0.0,129547,129547,100.0,0,0,,0
+5,clean,fact_transactions.client_id -> dim_client.client_id,fact_transactions,client_id,dim_client,client_id,298572,0,0.0,298572,298572,100.0,0,0,,0
+6,clean,fact_fees.client_id -> dim_client.client_id,fact_fees,client_id,dim_client,client_id,122197,0,0.0,122197,122197,100.0,0,0,,0
+7,clean,fact_portfolio_snapshot.client_id -> dim_client.client_id,fact_portfolio_snapshot,client_id,dim_client,client_id,129547,0,0.0,129547,129547,100.0,0,0,,0
+8,clean,fact_transactions.security_id -> dim_security.security_id,fact_transactions,security_id,dim_security,security_id,298572,101528,34.0045,197044,197044,100.0,0,0,,0
+9,clean,dim_security.benchmark_id -> dim_benchmark.benchmark_id,dim_security,benchmark_id,dim_benchmark,benchmark_id,500,0,0.0,500,500,100.0,0,0,,0
+10,clean,fact_portfolio_snapshot.benchmark_id -> dim_benchmark.benchmark_id,fact_portfolio_snapshot,benchmark_id,dim_benchmark,benchmark_id,129547,0,0.0,129547,129547,100.0,0,0,,0
+11,clean,fact_transactions.txn_date -> dim_date.date,fact_transactions,txn_date,dim_date,date,298572,0,0.0,298572,298572,100.0,0,0,,0
+12,clean,fact_fees.fee_date -> dim_date.date,fact_fees,fee_date,dim_date,date,122197,0,0.0,122197,122197,100.0,0,0,,0
+13,clean,fact_portfolio_snapshot.snapshot_date -> dim_date.date,fact_portfolio_snapshot,snapshot_date,dim_date,date,129547,0,0.0,129547,129547,100.0,0,0,,0

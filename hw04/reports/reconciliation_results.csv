@@ -1,0 +1,23 @@
+stage,check,rows_compared,rows_matching,pct_matching,tolerance,detail
+raw,(a) fee amount = aum_basis x bps_charged / 10000 / 12,122197,122197,100.0,$0.01,max diff $0.0050
+raw,(b) fee aum_basis = snapshot aum (same month),122197,122197,100.0,$0.01,fee rows with no same month snapshot (counted as not matching): 0; within 0.5%: 100.0% of all fees; max diff $0.0000; median gap 0.0000%
+raw,(b) fee aum_basis = snapshot aum (previous month),122197,203,0.1661,$0.01,"fee rows with no previous month snapshot (counted as not matching): 2,324; within 0.5%: 15.0396% of all fees; max diff $4,821,477.8700; median gap 1.8988%"
+raw,(c) txn amount = shares x price [Buy],83498,83498,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+raw,(c) txn amount = shares x price [Sell],59720,59720,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+raw,(c) txn amount = shares x price [Dividend],53826,53826,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+raw,(c) txn amount = shares x price [all three],197044,197044,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+raw,(d) active_alpha_ytd = return_ytd - benchmark_return_ytd,129547,129547,100.0,0.0002 (rounding),max diff 0.000001
+raw,(e) fact_transactions.advisor_id = dim_client.advisor_id,298572,298572,100.0,exact,informational: advisor reassignments are legitimate
+raw,(e) fact_fees.advisor_id = dim_client.advisor_id,122197,122197,100.0,exact,informational: advisor reassignments are legitimate
+raw,(e) fact_portfolio_snapshot.advisor_id = dim_client.advisor_id,129547,129547,100.0,exact,informational: advisor reassignments are legitimate
+clean,(a) fee amount = aum_basis x bps_charged / 10000 / 12,122197,122197,100.0,$0.01,max diff $0.0050
+clean,(b) fee aum_basis = snapshot aum (same month),122197,122197,100.0,$0.01,fee rows with no same month snapshot (counted as not matching): 0; within 0.5%: 100.0% of all fees; max diff $0.0000; median gap 0.0000%
+clean,(b) fee aum_basis = snapshot aum (previous month),122197,203,0.1661,$0.01,"fee rows with no previous month snapshot (counted as not matching): 2,324; within 0.5%: 15.0396% of all fees; max diff $4,821,477.8700; median gap 1.8988%"
+clean,(c) txn amount = shares x price [Buy],83498,83498,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+clean,(c) txn amount = shares x price [Sell],59720,59720,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+clean,(c) txn amount = shares x price [Dividend],53826,53826,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+clean,(c) txn amount = shares x price [all three],197044,197044,100.0,"max($0.01, 0.1%)",max diff $0.0050; median gap $0.0025
+clean,(d) active_alpha_ytd = return_ytd - benchmark_return_ytd,129547,129547,100.0,0.0002 (rounding),max diff 0.000001
+clean,(e) fact_transactions.advisor_id = dim_client.advisor_id,298572,298572,100.0,exact,informational: advisor reassignments are legitimate
+clean,(e) fact_fees.advisor_id = dim_client.advisor_id,122197,122197,100.0,exact,informational: advisor reassignments are legitimate
+clean,(e) fact_portfolio_snapshot.advisor_id = dim_client.advisor_id,129547,129547,100.0,exact,informational: advisor reassignments are legitimate

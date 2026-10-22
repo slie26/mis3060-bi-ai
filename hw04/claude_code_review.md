@@ -60,3 +60,47 @@ Issue 12 wording: the decision log says 362 client-months belong to inactive cli
 Issue 5: the decision log also says all flagged rows are dated 2023 and fall after the client's last snapshot. The script only checks that the clients are inactive. That's acceptable if you treat those two points as a one-off follow-up, but the log entry for this issue says "Verified", which implies more was checked.
 Issue 4's "0.7%" figure is only repeated in the note, not recalculated. That's fine as long as the log entry is clear it's a one-off finding.
 Everything else matches the decision log: the counts for Issues 1–9 and 13, the names in Issue 6 (still 3 after normalizing case and punctuation), the 219/281 split in Issue 7, and Issue 14's 2,500 and 298,572 rows. No rows are deleted, and is_return_suspect and is_post_departure_txn are left unchanged.
+
+   ## Part D review (03_validate.py)
+I reviewed 03_validate.py and the five CSVs it wrote, and ran a couple of read-only tests. No files were changed.
+
+Part D requirements: all met.
+
+Requirement	Status
+One reusable check_referential_integrity	✅ line 221, but see bug 1 below
+All 13 relationships	✅ Matches README_clean.md §1 exactly (10 on IDs, 3 on dates)
+Rule checks	✅ 50 rules on raw, 53 on clean
+2+ reconciliations	✅ Five checks, labelled (a) to (e)
+IQR on 2 columns	✅ fact_transactions.amount and fact_portfolio_snapshot.aum
+Raw vs clean scorecard	✅ 16 rows: 8 tables × 2 stages
+Bugs
+check_referential_integrity gives wrong results, or crashes, when it gets normally loaded DataFrames. This matters because the docstring says to reuse it in HW5. Your pandas is 3.0.5. I passed it frames loaded with a plain pd.read_csv(...):
+
+fact_transactions.security_id loads as float, so its values become "45.0" while dim_security has "45". 0 of 197,044 rows matched.
+Under pandas 3, missing values stay as NaN rather than "". So is_null (line 271) finds 0 nulls, and the 101,528 cash rows get counted as orphans.
+Then sorted(orphan_values.unique()) (line 290) mixes NaN with text and raises TypeError.
+It only works today because load_stage reads every column as text with keep_default_na=False. Fix: treat isna() as null too, normalise whole-number floats (45.0 → 45) or document that inputs must be read as text, and drop NaN before sorting.
+
+The fee reconciliation detail is misleading. It prints "max diff $0.01", but the real maximum is $0.0050000000000000044 (half a cent): the :,.2f format rounds it up. The check itself is fine, but anyone reading the CSV will think some fees are off by a full cent. Show 4 decimals.
+
+Checks that pass by construction
+Both "ISSUE HANDLED" rules are circular.
+
+ISSUE_RETURN (line 484) recomputes the same 3 × IQR on return_ytd that 02_clean used to create is_return_outlier.
+ISSUE_NON_TRADING and the rule at line 464 recompute 1 - dim_date.is_trading_day, which is exactly how 02_clean set is_non_trading_day.
+So on clean they can only score 100%. They show the flag column exists and matches its own formula, not that the issue is solved. Also, dim_date doesn't mark holidays (Issue 15), so "non-trading day" really means weekend. Holiday trades pass silently, and the rule name claims more than it checks.
+
+On raw, pct_rule_pass and pct_issues_flagged are 0% or lower partly by design. On raw, is_non_trading_day doesn't exist yet, and flag_or_zero treats it as all 0s. So fact_transactions scores 0% flagged and 97.89% rule pass mainly because cleaning hadn't added a column yet. That's a documented choice, but explain it in your write-up, or the raw-vs-clean gap looks like quality cleaning didn't produce. Clean also has 3 more flag-format rules than raw, so the rule sets aren't identical.
+
+Nothing fails the run when clean data is bad. The only asserts are the hard-coded issue counts (lines 745-752). If clean had orphans, rule failures or a reconciliation below 100%, the script would still exit normally. Consider asserting 0 orphans and 0 rule failures for the clean stage. Also, those asserts run before the CSVs are written, so a failed assert leaves you with no reports to debug from.
+
+Reconciliation (b) only counts fees that have a matching snapshot. Fees with no snapshot that month are left out of pct_matching, so it can show 100% while some fees have nothing to compare against. The count is reported in detail (0 for same month), but not in the percentage.
+
+Gaps in rule coverage (not bugs)
+dim_benchmark has no rules at all, so its pct_rule_pass is blank in the scorecard. dim_advisor has only one (region); years_experience and aum_target_mm have no range checks.
+Columns that repeat the date aren't checked against it:
+fact_portfolio_snapshot.year and .month aren't checked against snapshot_date.
+dim_date checks year, month, quarter and is_month_end against the date, but not day_of_week, week_of_year, month_name, is_quarter_end or is_year_end.
+The post-departure rule checks one direction only (flagged rows → inactive client), not the reverse.
+Small edge case: if no dim_date.date value parses, f"{dmin:%Y-%m-%d}" at line 359 fails on NaT before any rule runs.
+The current numbers look consistent: 100% referential match everywhere, the expected 34% null security_id on cash rows, and the issue counts reproduce (40,630 and 576 on raw, 0 and 0 on clean). The things I'd fix before submitting are #1 (since HW5 reuses the function) and the wording around #3 and #4 in your write-up.
