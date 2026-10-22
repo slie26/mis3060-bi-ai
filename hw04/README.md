@@ -4,6 +4,7 @@ MIS3060 Business Intelligence with AI · Sarah Lie
 
 ## Folder structure
 
+```
 hw04/
 ├── README.md                  ← this file
 ├── decision_log.md            ← Part B: 15 issues, decided before cleaning code
