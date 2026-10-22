@@ -56,6 +56,8 @@ raw,fact_portfolio_snapshot,snapshot_date within dim_date range (2020-01-01 to 2
 raw,fact_portfolio_snapshot,snapshot_date is the 1st of the month,129547,0,100.0,
 raw,fact_portfolio_snapshot,year matches snapshot_date,129547,0,100.0,
 raw,fact_portfolio_snapshot,month matches snapshot_date,129547,0,100.0,
+raw,fact_transactions,"ISSUE HANDLED Issue 1: Buy/Sell weekend-dated (dim_date has no holidays, Issue 15) has is_non_trading_day = 1",40630,40630,0.0,'2023-06-03' x125; '2022-12-24' x122; '2023-07-01' x117; '2024-02-17' x116; '2023-08-19' x116
+raw,fact_portfolio_snapshot,ISSUE HANDLED Issue 2: return_ytd outside 3x IQR has is_return_suspect = 1 or is_return_outlier = 1,3977,576,85.5167,'-0.53471' x3; '0.615199' x2; '0.627619' x1; '0.575875' x1; '0.616093' x1
 raw,fact_transactions,is_post_departure_txn = 1 only for inactive clients,2410,0,100.0,
 raw,fact_transactions,inactive client + txn month after last snapshot month => is_post_departure_txn = 1,2410,0,100.0,
 raw,fact_portfolio_snapshot,is_return_suspect = 1 wherever |return_ytd| > 1,977,0,100.0,
@@ -118,6 +120,8 @@ clean,fact_portfolio_snapshot,snapshot_date within dim_date range (2020-01-01 to
 clean,fact_portfolio_snapshot,snapshot_date is the 1st of the month,129547,0,100.0,
 clean,fact_portfolio_snapshot,year matches snapshot_date,129547,0,100.0,
 clean,fact_portfolio_snapshot,month matches snapshot_date,129547,0,100.0,
+clean,fact_transactions,"ISSUE HANDLED Issue 1: Buy/Sell weekend-dated (dim_date has no holidays, Issue 15) has is_non_trading_day = 1",40630,0,100.0,
+clean,fact_portfolio_snapshot,ISSUE HANDLED Issue 2: return_ytd outside 3x IQR has is_return_suspect = 1 or is_return_outlier = 1,3977,0,100.0,
 clean,fact_transactions,"is_non_trading_day = 1 exactly when txn_date is weekend-dated (dim_date has no holidays, Issue 15)",298572,0,100.0,
 clean,fact_transactions,is_post_departure_txn = 1 only for inactive clients,2410,0,100.0,
 clean,fact_transactions,inactive client + txn month after last snapshot month => is_post_departure_txn = 1,2410,0,100.0,

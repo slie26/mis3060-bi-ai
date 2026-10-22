@@ -1,5 +1,5 @@
-table,column,stage,lower_fence,upper_fence,outliers,pct
-fact_transactions,amount,raw,-92539.84,186444.0,7221,2.4185
-fact_portfolio_snapshot,aum,raw,-3747266.4325,6926558.8675,13261,10.2364
-fact_transactions,amount,clean,-92539.84,186444.0,7221,2.4185
-fact_portfolio_snapshot,aum,clean,-3747266.4325,6926558.8675,13261,10.2364
+table,column,stage,lower_fence,upper_fence,outliers,pct,note
+fact_transactions,amount,raw,-92539.84,186444.0,7221,2.4185,"'flagged' only means the value is far from the middle of its column - large trades and very large portfolios are normal for a wealth manager, so a flagged value is a prompt to look, not proof that it is wrong."
+fact_portfolio_snapshot,aum,raw,-3747266.43,6926558.87,13261,10.2364,"'flagged' only means the value is far from the middle of its column - large trades and very large portfolios are normal for a wealth manager, so a flagged value is a prompt to look, not proof that it is wrong."
+fact_transactions,amount,clean,-92539.84,186444.0,7221,2.4185,"'flagged' only means the value is far from the middle of its column - large trades and very large portfolios are normal for a wealth manager, so a flagged value is a prompt to look, not proof that it is wrong."
+fact_portfolio_snapshot,aum,clean,-3747266.43,6926558.87,13261,10.2364,"'flagged' only means the value is far from the middle of its column - large trades and very large portfolios are normal for a wealth manager, so a flagged value is a prompt to look, not proof that it is wrong."

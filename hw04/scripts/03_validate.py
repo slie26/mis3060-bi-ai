@@ -14,7 +14,9 @@ What it does, for both hw04/data/raw/ and hw04/data/clean/:
   3. Cross-table reconciliations (fee formula, fee vs snapshot AUM,
      shares x price, active alpha, advisor consistency)
   4. 1.5 x IQR outlier counts on transaction amount and snapshot AUM
-  5. A data-quality scorecard, one row per table per stage
+  5. A data-quality scorecard, one row per table per stage. pct_rule_pass
+     includes "ISSUE HANDLED" rules (decision log Issues 1 and 2), so raw scores
+     below 100% where known issues are unflagged and clean scores 100%.
   6. After ALL reports are written: a self-test of check_referential_integrity
      and assertions that the CLEAN stage has 0 orphans, 100% rule pass and
      100% on reconciliations (a), (c), (d). A failure lists every problem.
@@ -24,6 +26,7 @@ Outputs (hw04/reports/):
   ri_results.csv              - one row per relationship per stage (required)
   rule_results.csv            - detail behind pct_rule_pass (extra)
   reconciliation_results.csv  - detail for the reconciliations (extra)
+  iqr_outliers.csv            - 1.5 x IQR outlier counts per column per stage
 
 Reusing check_referential_integrity in HW5: a file whose name starts with a
 digit can't be imported with a plain `import`. Either copy the function, or:
@@ -110,6 +113,11 @@ RISK_PROFILES = {"Aggressive", "Moderately Aggressive", "Balanced",
 FEE_TYPES = {"Advisory", "Management", "Custodial", "Performance"}            # CONFIRMED
 ACCOUNT_TYPES = {"Taxable", "IRA", "Roth IRA", "Trust", "529"}                # CONFIRMED
 REGIONS = {"Northeast", "Mid-Atlantic", "Southeast", "Midwest", "West"}       # CONFIRMED
+# "Issue handled" rules (see run_rules) and the failure counts the decision log
+# predicts for them. Raw must fail exactly these; clean must fail 0.
+ISSUE_PREFIX = "ISSUE HANDLED"
+EXPECTED_RAW_ISSUE_FAILS = {"Issue 1:": 40_630, "Issue 2:": 576}
+
 US_STATES = {
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID",
     "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
@@ -119,8 +127,8 @@ US_STATES = {
 
 # ---------------------------------------------------------------------------
 # Expected data types, by column name (used for the type-validity score).
-# ID columns are deliberately not type-checked: they are text identifiers and
-# their format is tested through key uniqueness and referential integrity.
+# Every column ending in "_id" must be a whole number (blank allowed, e.g.
+# security_id on cash rows - blanks are scored by completeness instead).
 # ---------------------------------------------------------------------------
 NUMERIC_COLS = {
     "amount", "aum", "aum_basis", "initial_aum", "price", "shares",
@@ -537,7 +545,38 @@ def run_rules(t, stage):
     # the rule only shows that an analyst can find and filter every one of them.
     # =======================================================================
 
-    # Issue 1: is_non_trading_day comes from dim_date.is_trading_day, which marks
+    # Rules whose name starts with ISSUE_PREFIX are the "issue handled" rules.
+    # They run on BOTH stages. On raw, a flag column that cleaning adds later
+    # doesn't exist yet, so it is treated as all 0 and every known issue row
+    # fails - that is the point: raw has the problem undocumented, clean has
+    # every affected row flagged. They feed pct_rule_pass and pct_issues_flagged.
+    def flag_or_zero(df, col):
+        """0/1 version of a flag column; all 0 when the column doesn't exist yet (raw stage)."""
+        if col in df.columns:
+            return flag(df[col]).fillna(0)
+        return pd.Series(0, index=df.index)
+
+    # ISSUE HANDLED - Issue 1: every Buy/Sell dated on a weekend (dim_date has
+    # no market holidays, Issue 15) must carry is_non_trading_day = 1.
+    trading = dict(zip(txt(dd["date"]), flag(dd["is_trading_day"])))
+    weekend_dated = txt(x["txn_date"]).map(trading) == 0
+    buy_sell = txt(x["txn_type"]).isin({"Buy", "Sell"})
+    add_rule(R, stage, "fact_transactions",
+             f"{ISSUE_PREFIX} Issue 1: Buy/Sell weekend-dated (dim_date has no holidays, "
+             f"Issue 15) has is_non_trading_day = 1",
+             buy_sell & weekend_dated, flag_or_zero(x, "is_non_trading_day") == 1, x["txn_date"])
+
+    # ISSUE HANDLED - Issue 2: every return_ytd outside 3 x IQR must carry
+    # is_return_suspect = 1 OR is_return_outlier = 1.
+    r_all = num(p["return_ytd"])
+    extreme, _, _ = iqr_outliers(r_all, k=3.0)
+    handled = (flag_or_zero(p, "is_return_suspect") == 1) | (flag_or_zero(p, "is_return_outlier") == 1)
+    add_rule(R, stage, "fact_portfolio_snapshot",
+             f"{ISSUE_PREFIX} Issue 2: return_ytd outside 3x IQR has is_return_suspect = 1 "
+             f"or is_return_outlier = 1",
+             extreme, handled, p["return_ytd"])
+
+    # Issue 1 (clean only): is_non_trading_day comes from dim_date.is_trading_day, which marks
     # only weekends (no market holidays, Issue 15), so this checks weekend dating.
     label = "is_non_trading_day = 1 exactly when txn_date is weekend-dated (dim_date has no holidays, Issue 15)"
     if need("fact_transactions", "is_non_trading_day", "txn_date", rule=label):
@@ -689,21 +728,32 @@ def iqr_outliers(values, k=1.5):
     return values.notna() & ((values < lo) | (values > hi)), lo, hi
 
 
+IQR_NOTE = ("'flagged' only means the value is far from the middle of its column - "
+            "large trades and very large portfolios are normal for a wealth manager, so a "
+            "flagged value is a prompt to look, not proof that it is wrong.")
+
+
 def report_outliers(t, stage):
+    """Print the IQR outlier counts and return one row per column for iqr_outliers.csv."""
     print(f"\n--- IQR outliers (1.5 x IQR), {stage} ---")
     x = t["fact_transactions"]
+    rows = []
     for table, col in [("fact_transactions", "amount"), ("fact_portfolio_snapshot", "aum")]:
         vals = num(t[table][col])
         mask, lo, hi = iqr_outliers(vals)
+        rows.append({"table": table, "column": col, "stage": stage,
+                     "lower_fence": round(lo, 2), "upper_fence": round(hi, 2),
+                     "outliers": int(mask.sum()),
+                     "pct": pct(int(mask.sum()), int(vals.notna().sum())),
+                     "note": IQR_NOTE})
         print(f"{table}.{col}: {int(mask.sum()):,} of {int(vals.notna().sum()):,} values flagged "
               f"({pct(int(mask.sum()), int(vals.notna().sum()))}%), fences {lo:,.2f} to {hi:,.2f}")
         if table == "fact_transactions":
             # Amounts mix very different kinds of transaction, so show which types drive the count
             by_type = txt(x["txn_type"])[mask].value_counts()
             print("    flagged by txn_type: " + ", ".join(f"{k} {v:,}" for k, v in by_type.items()))
-    print("Note: 'flagged' only means the value is far from the middle of its column - "
-          "large trades and very large portfolios are normal for a wealth manager, so a flagged "
-          "value is a prompt to look, not proof that it is wrong.")
+    print("Note: " + IQR_NOTE)
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -759,7 +809,7 @@ def type_validity(name, df, stage, problems):
             ok, kind = flag(df[col]).notna(), "flag"
         elif is_date_col(col):
             ok, kind = dt(df[col]).notna(), "date"
-        elif col in WHOLE_NUMBER_COLS:
+        elif col in WHOLE_NUMBER_COLS or col.endswith("_id"):
             v = num(df[col])
             ok, kind = v.notna() & (v % 1 == 0), "whole number"
         elif col in NUMERIC_COLS:
@@ -785,6 +835,7 @@ def main():
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
     ri_all, rules_all, recs_all, score_rows, type_problems = [], [], [], [], []
+    iqr_rows = []
 
     for stage in ["raw", "clean"]:
         print("\n" + "=" * 78 + f"\nSTAGE: {stage.upper()}  ({STAGE_DIRS[stage]})\n" + "=" * 78)
@@ -820,13 +871,17 @@ def main():
         print(pd.DataFrame(recs)[["check", "rows_compared", "pct_matching", "detail"]]
               .to_string(index=False))
 
-        report_outliers(t, stage)
+        iqr_rows += report_outliers(t, stage)
 
         # Scorecard rows for this stage
         for name in TABLES:
             df = t[name]
             tr = rule_df[rule_df["table"] == name]
             ri_t = ri_df[ri_df["fact_table"] == name]
+            # "Issue handled" rules are circular by design: they prove every known
+            # issue row carries a flag, not that the underlying values are correct.
+            # They are why pct_rule_pass is below 100% on raw and 100% on clean.
+            ih = tr[tr["rule"].str.startswith(ISSUE_PREFIX)]
             score_rows.append({
                 "table": name,
                 "stage": stage,
@@ -843,6 +898,10 @@ def main():
                 # no foreign keys (dim_advisor, dim_date, dim_benchmark).
                 "pct_referential_match": pct(int(ri_t["matched_rows"].sum()),
                                              int(ri_t["non_null_rows"].sum())),
+                # % of known-issue rows (decision log Issues 1 and 2) that carry a flag.
+                # Blank for tables with no known issue to flag.
+                "pct_issues_flagged": pct(int(ih["rows_checked"].sum() - ih["rows_failed"].sum()),
+                                          int(ih["rows_checked"].sum())),
             })
 
     if type_problems:
@@ -859,11 +918,13 @@ def main():
     pd.DataFrame(ri_all).to_csv(REPORTS_DIR / "ri_results.csv", index=False)
     pd.DataFrame(rules_all).to_csv(REPORTS_DIR / "rule_results.csv", index=False)
     pd.DataFrame(recs_all).to_csv(REPORTS_DIR / "reconciliation_results.csv", index=False)
+    pd.DataFrame(iqr_rows).to_csv(REPORTS_DIR / "iqr_outliers.csv", index=False)
 
     print("\n" + "=" * 78 + "\nDATA QUALITY SCORECARD\n" + "=" * 78)
     print(score.to_string(index=False))
     print(f"\nSaved to {REPORTS_DIR}: data_quality_scorecard.csv, ri_results.csv, "
-          "rule_results.csv, reconciliation_results.csv")
+          "rule_results.csv, reconciliation_results.csv, iqr_outliers.csv")
+    print("iqr_outliers.csv: Note: " + IQR_NOTE)
 
     # Every report is already on disk at this point, so a failed assertion
     # below never leaves you without the CSVs you need to investigate it.
@@ -901,6 +962,17 @@ def assert_clean_stage(ri_all, rules_all, recs_all):
             problems.append(f"Reconciliation {r['check']}: {r['rows_matching']:,} of "
                             f"{r['rows_compared']:,} match ({r['detail']})")
 
+    # (4) "Issue handled" rules: raw must fail exactly the counts in the
+    # decision log (the issues exist, unflagged); clean must fail 0.
+    for key, expected_raw in EXPECTED_RAW_ISSUE_FAILS.items():
+        for stage, expected in [("raw", expected_raw), ("clean", 0)]:
+            hits = [r for r in rules_all if r["stage"] == stage
+                    and r["rule"].startswith(f"{ISSUE_PREFIX} {key}")]
+            got = sum(r["rows_failed"] for r in hits)
+            if len(hits) != 1 or got != expected:
+                problems.append(f"{ISSUE_PREFIX} {key} {stage}: expected {expected:,} failing rows, "
+                                f"got {got:,} ({len(hits)} matching rule(s))")
+
     if problems:
         print("\n" + "=" * 78 + f"\nCLEAN-STAGE ASSERTIONS FAILED ({len(problems)})\n" + "=" * 78)
         for line in problems:
@@ -908,6 +980,8 @@ def assert_clean_stage(ri_all, rules_all, recs_all):
     assert not problems, f"{len(problems)} clean-stage check(s) failed - see the list above"
     print("\nClean-stage assertions passed: 0 orphans, 100% rule pass, "
           "100% on reconciliations (a), (c), (d).")
+    print("Issue-handled counts match the decision log: Issue 1 raw 40,630 -> clean 0; "
+          "Issue 2 raw 576 -> clean 0.")
 
 
 # ---------------------------------------------------------------------------
