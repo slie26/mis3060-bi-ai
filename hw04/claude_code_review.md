@@ -1,3 +1,4 @@
+## Part A review (01_profile.py)
 I read all 1,379 lines of 01_profile.py and compared the code against the raw CSVs and the dq_summary_raw.csv it last produced. I changed no files.
 
 The most important point is that several ERROR/WARN findings in the current report come from how the checks are written, not from defects in the data. Fix these before the report is used in Part B.
