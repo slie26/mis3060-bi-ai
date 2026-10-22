@@ -38,3 +38,25 @@ dt() re-parses the same date column on every rule call. It's only slow, not wron
 The calendar-coverage finding is filed under group "1 Column", but other dim_date and cross-table checks use different groups.
 The flag-value check accepts "" as a valid flag value, so blank flags only show up in the detail text.
 Priorities: fix items 1–3 (they are what put most of the false ERROR/WARN volume in the report), then 7–10 (they could hide real defects after cleaning). Also confirm the expected counts in item 6 before treating them as defects.
+
+## Part C review (02_clean.py)
+Clean vs raw
+I compared all 8 tables byte by byte and field by field:
+
+Line endings: raw files use LF (\n), but every clean file uses CRLF (\r\n). pandas 3.0.5 to_csv defaults to os.linesep, which is CRLF on Windows. This accounts for all the extra bytes. For example, dim_advisor has 26 lines and is exactly 26 bytes larger.
+Everything else is identical: no BOM in either set, the same quote characters in the same places, the same row counts, and every original field matches once the CRs are removed. fact_transactions and fact_portfolio_snapshot differ only by the appended ,0/,1 column. Their byte counts match exactly once the header and the CRs are included.
+The docstring is wrong as a result: 02_clean.py:19-20 claims the output is "byte-for-byte the same", which isn't true. The final check at line 538 compares DataFrames in memory, not the files written, so it can't catch this. The fix is lineterminator="\n" on the to_csv calls at lines 544–545, 550 and 554. Re-reading the written file and comparing it to raw would also catch quoting changes in future.
+Places where the script could silently do the wrong thing
+compare_to_log only prints and never stops the script (line 113). If the data or logic drifts, the run still ends with "DONE - all assertions passed", and a "DIFFERS" line is easy to miss in a long output. All counts match today (checked against cleaning_log.csv). Consider counting the mismatches and failing at the end.
+Issues 10, 11 and 12 use hard-coded numbers (lines 473-481): 858+930, 28,746 and 7,350. The docstring says every leave-as-is issue is re-measured, but these three are not. If the raw data changed, the audit log would still show the old numbers.
+Issue 1's evidence total isn't checked. The decision log quotes 84,946 flagged rows across all types, but LOG_EVIDENCE only covers the 40,630 Buy/Sell figure. It matches today, but nothing would warn you if it changed.
+"Non-trading day" means weekend only. In dim_date, is_trading_day=1 on market holidays (2020-01-01 is marked as a trading day), so holiday trades are never flagged. The decision log says "weekend-dated", so the script is consistent with it, but the column name is_non_trading_day suggests more than it checks. Worth one sentence in README_clean.md.
+Step 5b compares absolute values (line 377). A Buy or Sell recorded with the wrong sign would still pass. The sign breakdown is printed, but no rule is enforced.
+Issue 8 is only checked one way. CASH_TYPES is defined at line 83 but never used. The script reports which transaction types have blank security fields, but doesn't assert that they are all cash types, or the reverse: that no cash row has a security. I checked by hand and found 0 violations either way.
+Low risk, for future quarantine use: pd.concat onto an empty DataFrame with all-object columns (line 514) can trigger pandas warnings or dtype surprises once rows are actually quarantined. No rows are quarantined now, so it has no effect.
+Mismatches with decision_log.md
+Issue 14, fact_portfolio_snapshot: the script logs it with the same note as the other two tables: "partly cleaned upstream; removed rows unavailable" (line 496). But this table's raw row count equals the sheet's (129,547, diff 0). Its only difference is the extra is_return_suspect column, so the note is misleading for this table.
+Issue 12 wording: the decision log says 362 client-months belong to inactive clients, but the script's note says "362 inactive clients" (line 480).
+Issue 5: the decision log also says all flagged rows are dated 2023 and fall after the client's last snapshot. The script only checks that the clients are inactive. That's acceptable if you treat those two points as a one-off follow-up, but the log entry for this issue says "Verified", which implies more was checked.
+Issue 4's "0.7%" figure is only repeated in the note, not recalculated. That's fine as long as the log entry is clear it's a one-off finding.
+Everything else matches the decision log: the counts for Issues 1–9 and 13, the names in Issue 6 (still 3 after normalizing case and punctuation), the 219/281 split in Issue 7, and Issue 14's 2,500 and 298,572 rows. No rows are deleted, and is_return_suspect and is_post_departure_txn are left unchanged.

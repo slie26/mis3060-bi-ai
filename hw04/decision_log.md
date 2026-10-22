@@ -12,7 +12,7 @@ Decision options: convert / standardize / fill / flag / quarantine / leave as is
 - **Table / column:** fact_transactions.txn_date (joined to dim_date.is_trading_day)
 - **Evidence:** 40,630 of 143,218 Buy/Sell rows fall on a weekend (20,481 Saturday, 20,149 Sunday). Weekend dates appear in about 28% of every txn_type, including Deposits and Withdrawals, which is the 2-in-7 share you'd expect if dates were spread evenly across the week.
 - **Dimension violated:** Accuracy/Plausibility
-- **Decision:** flag — add `is_non_trading_day` (0/1) to fact_transactions
+- **Decision:** flag — add `is_non_trading_day` (0/1) to fact_transactions for every weekend-dated row (84,946 rows across all types; 40,630 of them Buy/Sell)
 - **Justification:** markets are closed on weekends, so a trade can't really settle on a Saturday. Because the pattern hits every transaction type equally, it looks like how the source system stamps dates, not a few bad trades. I can't tell whether the true date was the Friday before or the Monday after, so moving dates would be a guess.
 - **Risk:** if these are posting dates rather than trade dates, the flag is noise, but nothing is lost. If I shifted them and guessed wrong, daily or monthly totals near month-ends would move into the wrong period.
 
@@ -119,3 +119,11 @@ Decision options: convert / standardize / fill / flag / quarantine / leave as is
 - **Decision:** leave as is; document
 - **Justification:** the provided extract was already partly cleaned (about 25 duplicate clients and 200 transactions removed upstream, 2 flags added). The removed rows aren't available, so they can't be quarantined or reconciled.
 - **Risk:** row counts in my reports won't match the assignment sheet. Explained in README.md and the cleaning report.
+
+### Issue 15 — dim_date ignores market holidays
+- **Table / column:** dim_date.is_trading_day
+- **Evidence:** is_trading_day = 0 on exactly the 522 weekend days and nothing else; market holidays such as 2020-01-01 (New Year's Day) are marked 1 (found in the Claude Code review of 02_clean.py)
+- **Dimension violated:** Accuracy
+- **Decision:** leave as is; known limitation
+- **Justification:** a holiday calendar isn't in the provided data, and adding one from outside would change a dimension table without a source in this extract. The is_non_trading_day flag therefore means "weekend-dated", which matches Issue 1.
+- **Risk:** trades dated on market holidays aren't flagged, so the flag undercounts implausible trade dates. Documented in README_clean.md.

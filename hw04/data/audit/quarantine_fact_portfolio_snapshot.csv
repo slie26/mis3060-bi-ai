@@ -1,0 +1,1 @@
+snapshot_id,client_id,advisor_id,benchmark_id,snapshot_date,year,month,aum,return_ytd,benchmark_return_ytd,active_alpha_ytd,cash_pct,account_type,is_return_suspect,is_return_outlier,quarantine_issue,quarantine_reason

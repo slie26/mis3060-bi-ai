@@ -1,0 +1,1 @@
+txn_id,client_id,advisor_id,security_id,txn_date,txn_type,shares,price,amount,is_post_departure_txn,is_non_trading_day,quarantine_issue,quarantine_reason
