@@ -56,7 +56,7 @@ take the value at one point in time (e.g. the latest month).
 | Column | Type | What that means |
 |---|---|---|
 | `amount` | Additive | Dollar flows can be summed across clients, advisors, securities and days — **but only within one `txn_type`**: every amount is stored positive, so summing Deposits and Withdrawals together adds money in to money out. Always filter or group by `txn_type`. |
-| `shares` | Additive (within one security) | Shares can be summed over time and clients for a single security; summing shares of different securities is meaningless (100 shares of a $10 fund ≠ 100 shares of a $500 stock). Blank on cash rows. |
+| `shares` | Additive (within one security and one `txn_type`) | Shares can be summed over time and clients for a single security and transaction type; summing shares of different securities is meaningless (100 shares of a $10 fund ≠ 100 shares of a $500 stock), and like `amount`, Buy and Sell shares are both stored positive, so they must not be added together. Blank on cash rows. |
 | `price` | Non-additive | A per-share price; summing prices means nothing. Use an average weighted by `shares` (or `amount ÷ shares`). |
 
 ### fact_fees
