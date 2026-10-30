@@ -48,3 +48,5 @@ Thumbs.db
 .pytest_cache/
 .mypy_cache/
 .ipynb_checkpoints
+!hw05/**/*.csv
+!hw05/**/*.csv
