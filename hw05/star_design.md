@@ -87,3 +87,101 @@ take the value at one point in time (e.g. the latest month).
 - **dim_security:** `expense_ratio_bps` (a rate; average, weighted by holdings)
 - **dim_date:** `date_id`, `year`, `quarter`, `month`, `week_of_year` (labels for grouping), and the `is_*` flags
 - **All dimensions:** the ID columns
+
+---
+
+## Part E — Relationships and design
+
+**The model I built (Part D):** 13 relationships, one for every foreign key in Part A. All are
+many-to-one with single cross-filter direction (dimension filters fact). 12 are active; 1
+(`dim_client → dim_advisor`) is inactive. `dim_date` is marked as the date table on `date`.
+Row counts in Power BI match the handout for all 8 tables.
+
+**Conformed dimensions:** `dim_client`, `dim_advisor` and `dim_date` are shared by all three fact
+tables, so one slicer on any of them filters fees, snapshots and transactions consistently.
+`dim_benchmark` is shared by `fact_portfolio_snapshot` and (through `dim_security`)
+`fact_transactions`.
+
+**(a) Why do some transactions have no `security_id`? Is it a defect?**
+101,528 transactions (34.0%) have a blank `security_id`, and every one of them is a Deposit,
+Withdrawal or Advisory Fee. These move cash in or out of the account and don't involve buying or
+selling a security, so there is nothing for the key to point to. My script proves it both ways:
+0 cash rows carry a security_id and 0 Buy/Sell/Dividend rows lack one. It is not a defect; it is
+the structure of the business. In Power BI these rows show up as a single (Blank) row when
+transactions are grouped by a security attribute — $3,573,887,227.67 when grouped by
+`dim_security[asset_class]`. Any other (Blank) would mean an orphan key, and there are none
+(0 orphans on all 13 relationships).
+
+**(b) `advisor_id` is in `dim_client` and on all three facts. Which relationship(s) are active?**
+I kept the three **fact → `dim_advisor`** relationships active and made **`dim_client → dim_advisor`
+inactive**. Power BI allows only one active path between two tables, and with both active a fact
+could reach `dim_advisor` directly and through `dim_client`, which is ambiguous. I chose the direct
+path because:
+- it keeps the model a star: every fact is one step from every dimension, and an advisor slicer
+  filters all three facts directly. I tested it: selecting the West region shows 2 advisors,
+  8,639 fees, 9,151 snapshots and 22,291 transactions, which match the CSVs;
+- the advisor on each fact row records who handled that fee, snapshot or trade. Today it matches
+  the client's advisor on 100% of rows, but if a client is reassigned later, `dim_client` would only
+  hold the current advisor, while the facts would still credit history to the right person.
+
+**The trade-off:** an advisor filter does not reach `dim_client`. With West selected, the client
+count still shows 2,500, although West has only 181 clients. To count clients by advisor I would
+count distinct `client_id` in a fact table, or activate the inactive relationship inside a DAX
+measure with `USERELATIONSHIP` in Assignment 6.
+
+**(c) Which column did I join the date dimension on, and why?**
+I joined each fact date (`txn_date`, `fee_date`, `snapshot_date`) to **`dim_date[date]`**, not
+`dim_date[date_id]`. The facts store calendar dates: they match `dim_date.date` on 100% of rows and
+`date_id` on 0% (`date_id` is just a counter from 1 to 1,827). Joining on `date_id` would require
+adding a new key column to every fact, which this assignment doesn't allow. `date` is unique in
+`dim_date` (1,827 values, one per day), so it can be the "one" side of the relationship. Both sides
+are typed as Date (not Date/Time) so the values match exactly, and `date` is the column used to
+mark the date table.
+
+**(d) Star or snowflake?**
+Two dimensions point to other dimensions: `dim_client → dim_advisor` and
+`dim_security → dim_benchmark`. Those links make it technically a snowflake. I kept both, but
+differently:
+- `dim_security → dim_benchmark` is **active**. It is the only way to group transactions by
+  benchmark, and it creates no second path. Note that it means something different from
+  `fact_portfolio_snapshot → dim_benchmark`: the snapshot uses the client's *portfolio* benchmark
+  (only benchmarks 1, 3 and 8 occur), while a security uses its own *asset-class* benchmark
+  (1, 2, 3, 4, 5 and 7). A benchmark slicer therefore answers two different questions for the two facts.
+- `dim_client → dim_advisor` is **inactive**, for the reason in (b).
+
+So the model works as a **star with one snowflake branch** (security → benchmark). Flattening the
+benchmark into `dim_security` would make it a pure star, but this assignment says not to build new
+columns.
+
+---
+
+## Part F — Reflection
+
+**1. Transactions — "How much money did clients deposit and withdraw each quarter in 2024, by advisor region?"**
+*Single visual, no DAX: yes, with one condition.* A matrix with `dim_advisor[region]` on rows,
+`dim_date[quarter]` on columns, `txn_type` as a filter (Deposit, Withdrawal) and Sum of `amount`
+answers it. The condition is that `txn_type` must always be in the visual: every `amount` is stored
+as a positive number, so without it Power BI adds deposits, withdrawals, buys and fees together
+(the unfiltered total of $16.1 billion is not a real business number). What I *can't* show in one
+visual is **net flow** (deposits minus withdrawals). **Schema fix:** add a signed amount (or a
++1/−1 direction column) to `fact_transactions`, so money in and money out cancel correctly when summed.
+
+**2. Fees — "What was total fee revenue by advisor each month in 2024?"**
+*Single visual, no DAX: yes.* Fee `amount` is additive across clients, advisors and months, so a
+line chart of Sum of `fact_fees[amount]` by `dim_date[month]`, with `dim_advisor` as the legend or a
+slicer, is correct as it is. A follow-up question, "what is our average fee rate in bps?", is
+*not* answerable by dragging `bps_charged` into a visual: Power BI's Average would weight a $1,000
+account the same as an $80 million account. It needs DAX (total fees ÷ total `aum_basis`), or a
+schema change that stores the rate's numerator and denominator so it can be summed.
+
+**3. Portfolio snapshots — "What was firm AUM at the end of 2024, by client risk profile?"**
+*Single visual, no DAX: no.* `aum` is semi-additive. A monthly line chart works, because each month
+has one snapshot per client. But a card or matrix at **year** level sums all 12 monthly balances,
+which overstates AUM about 12 times. I would have to remember to filter to December by hand, and a
+"by year" matrix can't do that for every year at once. Returns are worse: an Average of `return_ytd`
+across clients ignores account size and includes the flagged suspect values. **Schema fix:** add a
+period-end flag to `fact_portfolio_snapshot` (e.g. `is_year_end_snapshot`, `is_quarter_end_snapshot`)
+so a simple filter picks the closing balance; and store each client's dollar gain alongside the
+return, so an AUM-weighted return can be built from additive parts. The other gap the model can't
+cover without DAX is **clients per advisor**, because `dim_client → dim_advisor` is inactive (see
+Part E b).
