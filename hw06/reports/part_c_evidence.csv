@@ -1,0 +1,68 @@
+question,item,value
+a,latest snapshot date,2024-12-01
+a,Ending AUM (no filters),12729572078.86
+a,SUMX over clients of each client's last AUM,13149297713.8
+a,difference (SUMX - Ending AUM),419725634.9399986
+a,clients whose last snapshot is before the latest date,175
+a,total last AUM of those clients,419725634.94
+a,earliest of those last dates,2022-12-01
+a,latest of those last dates,2023-11-01
+a,check: difference equals their total last AUM,True
+b,total fees 2024,48714005.93
+b,Σ snapshot aum 2024,135459843783.73
+b,Σ fee aum_basis 2024,128385303527.1
+b,Σ aum - Σ aum_basis,7074540256.62999
+b,Fee Yield (bps),43.154344109040835
+b,Effective Fee Rate (bps),45.532319907364425
+b,"gap (Effective Fee Rate - Fee Yield, bps)",2.3779757983235896
+b,[2024] snapshot rows,27900
+b,[2024] fee rows,26216
+b,[2024] snapshot rows with no fee row,1684
+b,[2024] total aum of snapshot rows with no fee row,7074540256.63
+b,[2024] snapshot-fee pairs (same client and month),26216
+b,[2024] share of pairs where aum = aum_basis (within $0.01),1.0
+b,[2024] fee rows with no snapshot row,0
+b,[2024] extra fee rows in an already-billed client-month,0
+b,[all years] snapshot rows,129547
+b,[all years] fee rows,122197
+b,[all years] snapshot rows with no fee row,7350
+b,[all years] total aum of snapshot rows with no fee row,28189273876.97
+b,[all years] snapshot-fee pairs (same client and month),122197
+b,[all years] share of pairs where aum = aum_basis (within $0.01),1.0
+b,[all years] fee rows with no snapshot row,0
+b,[all years] extra fee rows in an already-billed client-month,0
+c,latest snapshot date,2024-12-01
+c,rows on that date,2325
+c,"weighted alpha, suspects excluded (the measure)",0.01447994680056427
+c,"simple mean alpha, suspects excluded",0.008788000918695454
+c,"weighted alpha, suspects included",0.01667843242874973
+c,"simple mean alpha, suspects included",0.15562441032258065
+c,rows with a blank alpha (suspects excluded),0
+c,suspect rows on that date,148
+c,aum of suspect rows,15543506.100000001
+c,suspect rows in tier Retail,148
+c,"weighted alpha over all 12 months of 2024, suspects excluded (invalid)",0.003225456332929842
+d,HNW: deposits 2024,120012105.03
+d,HNW: withdrawals 2024,94784698.77
+d,HNW: net flows 2024,25227406.260000005
+d,HNW: Ending AUM end of 2023,2130154150.42
+d,HNW: Ending AUM end of 2024,2548521154.33
+d,HNW: Organic Growth Rate,0.011842995613733375
+d,HNW: AUM YoY %,0.19640221991798618
+d,HNW: YoY minus organic (growth not from net new money),0.1845592243042528
+d,Retail: deposits 2024,245282579.85
+d,Retail: withdrawals 2024,201098532.24
+d,Retail: net flows 2024,44184047.609999985
+d,Retail: Ending AUM end of 2023,447795648.67
+d,Retail: Ending AUM end of 2024,533452497.89
+d,Retail: Organic Growth Rate,0.09867011379237657
+d,Retail: AUM YoY %,0.19128557741552377
+d,Retail: YoY minus organic (growth not from net new money),0.0926154636231472
+d,UHNW: deposits 2024,45251363.78999999
+d,UHNW: withdrawals 2024,37149762.4
+d,UHNW: net flows 2024,8101601.389999993
+d,UHNW: Ending AUM end of 2023,8067021937.91
+d,UHNW: Ending AUM end of 2024,9647598426.64
+d,UHNW: Organic Growth Rate,0.0010042865201503285
+d,UHNW: AUM YoY %,0.19593060498599493
+d,UHNW: YoY minus organic (growth not from net new money),0.1949263184658446
