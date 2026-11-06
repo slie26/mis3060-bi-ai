@@ -73,6 +73,11 @@ Full review in `claude_code_review.md`.
 | Net Flows assumes withdrawals are positive; the Total slice was clipped to dim_date | Script now asserts every withdrawal is positive and that no fact date falls outside dim_date |
 | Fee Yield divides by snapshot AUM, but about 7,350 client-months have AUM and no fee; both tools make the same choice | Not a code bug; investigated it in Part C (b) as the data limitation behind the gap with the Effective Fee Rate |
 | txn_type comment didn't say it trims whitespace | Comment corrected |
+| **02_part_c_evidence.py:** no code bugs; confirmed (a)–(d) independently | — |
+| Some numbers in measures.md (Firm row, UHNW's 76% share, Retail's $448M base) weren't produced by the script | Added a Firm row, tier shares of AUM and starting balances to the script so every number is traceable |
+| (d) compares Dec-to-Dec AUM growth with calendar-year flows | Script also computes organic growth on the snapshot window (2023-12-01 to 2024-11-30); added a sentence to measures.md: the conclusions don't change |
+| Couldn't confirm the ICE 9 Effective Fee Rate formula | Confirmed from the ICE 9 handout: `DIVIDE ( [Total Fees] * 12 * 10000, SUM ( fact_fees[aum_basis] ) )`, 45.6 bps firm-wide; cited in Part C (b) |
+| Ratios printed as raw decimals in the console | Console now prints percentages; the CSV keeps raw decimals |
 
 ## AI use
 

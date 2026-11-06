@@ -33,10 +33,14 @@ MONEY_TOL = 0.01   # "aum equals aum_basis" means within one cent
 evidence = []
 
 
-def record(question, item, value):
-    """Print one piece of evidence and keep it for the CSV."""
+def record(question, item, value, pct=False):
+    """Print one piece of evidence and keep it for the CSV.
+    pct=True prints a ratio as a percentage (0.014480 -> 1.4480%); the CSV
+    always keeps the raw decimal so it can be reused in other calculations."""
     evidence.append({"question": question, "item": item, "value": value})
-    if isinstance(value, float):
+    if pct and isinstance(value, (int, float)) and not isinstance(value, bool):
+        shown = f"{value * 100:.4f}%"
+    elif isinstance(value, float):
         shown = f"{value:,.6f}" if abs(value) < 10 else f"{value:,.2f}"
     else:
         shown = value
@@ -168,7 +172,8 @@ def coverage(snap, fees, q, label):
     record(q, f"[{label}] total aum of snapshot rows with no fee row",
            float(no_fee["aum"].sum()))
     record(q, f"[{label}] snapshot-fee pairs (same client and month)", int(len(pairs)))
-    record(q, f"[{label}] share of pairs where aum = aum_basis (within $0.01)", share_equal)
+    record(q, f"[{label}] share of pairs where aum = aum_basis (within $0.01)", share_equal,
+           pct=True)
     record(q, f"[{label}] fee rows with no snapshot row", int(len(no_snap)))
     record(q, f"[{label}] extra fee rows in an already-billed client-month", dup_fee_months)
 
@@ -215,10 +220,13 @@ def part_c(snap):
 
     record(q, "latest snapshot date", str(latest.date()))
     record(q, "rows on that date", int(len(last)))
-    record(q, "weighted alpha, suspects excluded (the measure)", weighted_alpha(clean))
-    record(q, "simple mean alpha, suspects excluded", simple_mean(clean["active_alpha_ytd"]))
-    record(q, "weighted alpha, suspects included", weighted_alpha(last))
-    record(q, "simple mean alpha, suspects included", simple_mean(last["active_alpha_ytd"]))
+    record(q, "weighted alpha, suspects excluded (the measure)", weighted_alpha(clean),
+           pct=True)
+    record(q, "simple mean alpha, suspects excluded", simple_mean(clean["active_alpha_ytd"]),
+           pct=True)
+    record(q, "weighted alpha, suspects included", weighted_alpha(last), pct=True)
+    record(q, "simple mean alpha, suspects included", simple_mean(last["active_alpha_ytd"]),
+           pct=True)
     record(q, "rows with a blank alpha (suspects excluded)",
            int(clean["active_alpha_ytd"].isna().sum()))
     record(q, "suspect rows on that date", int(len(suspects)))
@@ -230,7 +238,7 @@ def part_c(snap):
     # mixes January's 1-month alpha with December's 12-month alpha.
     year_rows = snap[(snap["snapshot_date"].dt.year == YEAR) & ~snap["is_suspect"]]
     record(q, f"weighted alpha over all 12 months of {YEAR}, suspects excluded (invalid)",
-           weighted_alpha(year_rows))
+           weighted_alpha(year_rows), pct=True)
 
 
 # ===========================================================================
@@ -240,39 +248,72 @@ def part_d(snap, txns):
     heading(f"(d) Organic Growth Rate vs AUM YoY % by client tier, {YEAR}")
     q = "d"
 
-    def tier_ending_aum(year, tier):
-        """Tier's aum on its last snapshot date in that year."""
-        rows = snap[(snap["snapshot_date"].dt.year == year) & (snap["client_tier"] == tier)]
-        if rows.empty:
-            return None
-        return float(rows.loc[rows["snapshot_date"] == rows["snapshot_date"].max(), "aum"].sum())
+    # Snapshots are taken on the 1st of the month, so the Dec 2023 snapshot
+    # (2023-12-01) to the Dec 2024 snapshot (2024-12-01) covers money that
+    # moved from 2023-12-01 to 2024-11-30. The calendar-year version (what
+    # the DAX measure does) uses Jan-Dec 2024 flows instead; both are shown.
+    window_start = pd.Timestamp(YEAR - 1, 12, 1)
+    window_end = pd.Timestamp(YEAR, 11, 30)
 
-    tiers = sorted(snap["client_tier"].dropna().unique())
-    for tier in tiers:
-        t = txns[(txns["txn_date"].dt.year == YEAR) & (txns["client_tier"] == tier)]
+    def ending_aum(year, tier=None):
+        """aum on the last snapshot date in that year, for one tier or the
+        whole firm (tier=None). Also returns that date."""
+        rows = snap[snap["snapshot_date"].dt.year == year]
+        if tier is not None:
+            rows = rows[rows["client_tier"] == tier]
+        if rows.empty:
+            return None, None
+        last_date = rows["snapshot_date"].max()
+        return float(rows.loc[rows["snapshot_date"] == last_date, "aum"].sum()), last_date
+
+    def flows(start, end, tier=None):
+        """Deposits, withdrawals and net flows between two dates (inclusive)."""
+        t = txns[(txns["txn_date"] >= start) & (txns["txn_date"] <= end)]
+        if tier is not None:
+            t = t[t["client_tier"] == tier]
         deposits = float(t.loc[t["txn_type_clean"] == "deposit", "amount"].sum())
         withdrawals = float(t.loc[t["txn_type_clean"] == "withdrawal", "amount"].sum())
-        net_flows = deposits - withdrawals
+        return deposits, withdrawals, deposits - withdrawals
 
-        ending = tier_ending_aum(YEAR, tier)
-        ending_ly = tier_ending_aum(YEAR - 1, tier)
+    # The firm's ending balance, used for each tier's share of AUM.
+    firm_ending, firm_date = ending_aum(YEAR)
+
+    tiers = sorted(snap["client_tier"].dropna().unique())
+    for tier in tiers + [None]:          # None = the Firm row (all tiers together)
+        name = "Firm" if tier is None else tier
+
+        deposits, withdrawals, net_flows = flows(pd.Timestamp(YEAR, 1, 1),
+                                                 pd.Timestamp(YEAR, 12, 31), tier)
+        _, _, net_flows_window = flows(window_start, window_end, tier)
+
+        ending, _ = ending_aum(YEAR, tier)
+        ending_ly, _ = ending_aum(YEAR - 1, tier)
         if not ending_ly:
-            print(f"  {tier}: no {YEAR - 1} balance, skipped")
+            print(f"  {name}: no {YEAR - 1} balance, skipped")
             continue
         organic = net_flows / ending_ly
+        organic_window = net_flows_window / ending_ly
         yoy = (ending - ending_ly) / ending_ly
 
-        print(f"\n  {tier}")
-        record(q, f"{tier}: deposits {YEAR}", deposits)
-        record(q, f"{tier}: withdrawals {YEAR}", withdrawals)
-        record(q, f"{tier}: net flows {YEAR}", net_flows)
-        record(q, f"{tier}: Ending AUM end of {YEAR - 1}", ending_ly)
-        record(q, f"{tier}: Ending AUM end of {YEAR}", ending)
-        record(q, f"{tier}: Organic Growth Rate", organic)
-        record(q, f"{tier}: AUM YoY %", yoy)
+        print(f"\n  {name}")
+        record(q, f"{name}: deposits {YEAR}", deposits)
+        record(q, f"{name}: withdrawals {YEAR}", withdrawals)
+        record(q, f"{name}: net flows {YEAR}", net_flows)
+        record(q, f"{name}: net flows {window_start.date()} to {window_end.date()}",
+               net_flows_window)
+        record(q, f"{name}: Ending AUM end of {YEAR - 1}", ending_ly)
+        record(q, f"{name}: Ending AUM end of {YEAR}", ending)
+        if tier is not None:
+            record(q, f"{name}: share of firm Ending AUM at {firm_date.date()}",
+                   ending / firm_ending, pct=True)
+        record(q, f"{name}: Organic Growth Rate (calendar-year flows)", organic, pct=True)
+        record(q, f"{name}: Organic Growth Rate (snapshot-window flows)", organic_window,
+               pct=True)
+        record(q, f"{name}: AUM YoY %", yoy, pct=True)
         # Whatever growth net new money does not explain: mostly market
         # returns, minus fees, plus any clients moving in or out of the tier.
-        record(q, f"{tier}: YoY minus organic (growth not from net new money)", yoy - organic)
+        record(q, f"{name}: YoY minus organic (growth not from net new money)",
+               yoy - organic, pct=True)
 
 
 def main():

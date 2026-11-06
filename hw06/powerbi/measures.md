@@ -237,3 +237,8 @@ What Organic Growth **does not** tell you: whether the money came from **new cli
 **timing** of flows within the year, how much of the market gain is **alpha versus the benchmark**, or the **dollar
 size** — Retail's high rate sits on a small $448M base, so its $44M of net flows is still small next to UHNW's book.
 It also says nothing about **fees**, since flows are measured before them.
+
+Finally, "YoY − Organic" is not an exact split of growth: AUM YoY runs from the 2023-12-01 to the 2024-12-01
+snapshot, while net flows cover calendar 2024, so December 2024 flows are counted but not yet in the ending balance.
+Lining the windows up (flows from 2023-12-01 to 2024-11-30) barely moves the rates — HNW 1.08%, Retail 9.86%,
+UHNW 0.11% — so the conclusions hold.

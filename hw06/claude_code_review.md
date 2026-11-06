@@ -29,3 +29,27 @@ last_snapshot_rows takes the latest date even if all its aum values are blank, w
 Ending Clients uses nunique(), which drops a blank client_id. DAX's DISTINCTCOUNT counts the blank.
 Top 10 groups on the snapshot's client_id. DAX would put client IDs missing from dim_client together as one blank member.
 The cheapest fix for section 1 is a small set of hand-built test rows that deliberately include these cases, such as a departed top-10 client, suspects in UHNW, and a blank alpha. Then the script could fail if one of these paths broke.
+
+## Review of 02_part_c_evidence.py
+What I checked
+
+The data meets the script's assumptions. There are no missing values in aum, active_alpha_ytd or aum_basis, and no duplicate client-date snapshots. Every client_id in the fact tables is in dim_client, every client has a tier, and every withdrawal amount is positive. So the blank and missing-value handling in weighted_alpha and to_flag never actually comes into play.
+(a) The $419,725,634.94 gap is exactly the last balances of the 175 departed clients, whose final snapshots fall between Dec 2022 and Nov 2023. The script's own check returns True.
+(b) Each fee row has exactly one matching snapshot. Where both exist, aum equals aum_basis every time, and no client-month is billed twice. So the gap really is only the 1,684 client-months that have AUM but no fee.
+(c) The logic matches the DAX. The last date is found with suspect rows still included, and only then are suspects excluded.
+(d) No client joins, leaves or appears in any 2024 deposit or withdrawal. Every client on 2023-12-01 is also there on 2024-12-01, and none of the 2024 flows are flagged post-departure. So "YoY minus organic" isn't distorted by clients coming or going.
+Things worth knowing (none are code bugs)
+
+Some numbers in measures.md don't come from this script. The "Firm" row in table (d), "UHNW holds 76% of AUM" and "Retail's $448M base" aren't produced by 02_part_c_evidence.py. I recomputed them and they're correct: 0.7282%, 19.583%, 75.8% and $447.8M. But since the doc says the evidence comes from this script, a grader can't trace them to it. A firm-level loop in part_d would close that gap.
+
+(d) mixes two time windows. AUM YoY runs from Dec 1, 2023 to Dec 1, 2024 (the snapshots are dated the 1st). Net flows use the calendar year, Jan 1 to Dec 31, 2024. So December 2024 flows are counted but aren't in the ending AUM, and December 2023 flows are in neither. This matches the DAX, so it isn't a mismatch, and lining up the windows barely moves the results:
+
+Tier	Organic, calendar year	Organic, Dec 1 to Dec 1
+HNW	1.18%	1.08%
+Retail	9.87%	9.93%
+UHNW	0.10%	0.11%
+The conclusions don't change. It's still worth a sentence in the "what Organic Growth doesn't tell you" list, because "YoY minus organic = market" isn't exact.
+
+I couldn't confirm the ICE 9 formula. The script defines Effective Fee Rate as fees × 12 × 10,000 ÷ Σ aum_basis. If ICE 9 is actually defined another way, such as an average of bps_charged, the 45.53 bps figure wouldn't match it. Neither the repo nor its git history writes down the ICE 9 formula, so please check it against the original ICE.
+
+A display quirk. record() prints ratios as raw decimals (0.014480), not percentages. The CSV is fine, but the console output can be misread as 0.0145%.
