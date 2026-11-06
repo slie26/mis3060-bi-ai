@@ -190,7 +190,7 @@ is their final month (between December 2022 and November 2023). Their last balan
 **`Ending AUM` answers "How much do we manage today?"** — it pins one date for everyone, so only current balances count.
 
 ### (b) Why 2024 `Fee Yield (bps)` is lower than ICE 9 `Effective Fee Rate (bps)`
-For 2024, **Fee Yield = 43.15 bps** and **Effective Fee Rate = 45.53 bps** (fees × 12 × 10,000 ÷ Σ `aum_basis`).
+For 2024, **Fee Yield = 43.15 bps** and **Effective Fee Rate = 45.53 bps**    (ICE 9 definition: `DIVIDE ( [Total Fees] * 12 * 10000, SUM ( fact_fees[aum_basis] ) )`; 45.6 bps firm-wide in ICE 9 Checkpoint 6).
 Both use the same **$48,714,005.93** of fees, so the difference is entirely in the denominator:
 Σ snapshot `aum` = **$135.46 billion**, Σ fee `aum_basis` = **$128.39 billion**, a gap of **$7.07 billion**.
 pandas shows why: wherever a client-month has both a snapshot and a fee row, `aum` equals `aum_basis` on **100%** of the
